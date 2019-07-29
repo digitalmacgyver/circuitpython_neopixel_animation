@@ -111,13 +111,28 @@ def wheel( pos ):
     return (r, g, b)
 
 def driver():
-    #pixel_pin = board.NEOPIXEL
+    # Controlling the pixels on the board.
+    pixel_pin = board.NEOPIXEL
+    
+    # Controlling the LED strip attached to A1.
     #pixel_pin = digitalio.DigitalInOut( board.A1 )
     #pixel_pin.direction = digitalio.Direction.OUTPUT
 
-    button_1 = analogio.AnalogIn( board.A3 )
+    # Code from the analog pressure sensitive input.
+    #button_1 = analogio.AnalogIn( board.A3 )
+    
+    # Code for digital switches
+    button_1 = digitalio.DigitalInOut( board.A2 )
+    button_1.direction = digitalio.Direction.INPUT
+    button_1.pull = digitalio.Pull.UP
+    
+    button_2 = digitalio.DigitalInOut( board.A3 )
+    button_2.direction = digitalio.Direction.INPUT
+    button_2.pull = digitalio.Pull.UP
 
-    pixel_pin = board.A2
+    # Controlling external LED
+    #pixel_pin = board.A2
+    
     num_pixels = 28
     pixels = neopixel.NeoPixel( pixel_pin, num_pixels, brightness=0.5, auto_write=False )
 
@@ -153,8 +168,10 @@ def driver():
     color_c = 2*(256/4)
     color_d = 3*(256/4)
 
-    cycle = 0
-
+    # DEBUG for switch testing we want the lights always on, so disable cycle code.
+    #cycle = 0
+    cycle = 4
+    
     while True:
         peak_a = wheel( color_a )
         peak_b = wheel( color_b )
@@ -196,33 +213,48 @@ def driver():
 
         #print( pixels )
         print( button_1.value )
-        if button_1.value > 500:
+        # Analog button example
+        #if button_1.value > 500:
+        
+        # Digital buttons are "False" if pressed.
+        #   if the first button is pressed then pixels 0-6 are enabled
+        #   if the first and second button is pressed then pixels 0-13 are enabled
+        if button_1.value:
             for i in range( num_pixels ):
                 pixels[i] = ( 0, 0, 0 )
+        else:
+            if not button_2.value:
+                for i in range( 14, num_pixels ):
+                    pixels[i] = ( 0, 0, 0 )
+            else:
+                for i in range( 7, num_pixels ):
+                    pixels[i] = ( 0, 0, 0 )
+
         pixels.show()
         time.sleep( interval )
         t += interval
         #print( t )
         if t > path_length / speed:
-            cycle += 1
+            # DEBUG for switch testing we want the lights always on, so disable cycle code.
+            #cycle += 1
             # Give us three full cycles at everything lit up before starting over.
-            cycle = cycle % 7
+            #cycle = cycle % 7
             t -= path_length / speed
             #t = 0
 
 def led_driver():
+    # Test code for analog pressure sensitive button.
     led = digitalio.DigitalInOut( board.D13 )
     led.direction = digitalio.Direction.OUTPUT
-    
+
     #button = digitalio.DigitalInOut( board.BUTTON_A )
     #button.direction = digitalio.Direction.INPUT
     #button.pull = digitalio.Pull.DOWN
-    
+
     button = analogio.AnalogIn( board.A3 )
     #button.direction = analogio.Direction.INPUT
     #button.pull = analogio.Pull.DOWN
 
-    
     while True:
         if button.value < 1000:
             print( button.value )
@@ -234,3 +266,4 @@ def led_driver():
 print( "Starting" )
 driver()
 #led_driver()
+
