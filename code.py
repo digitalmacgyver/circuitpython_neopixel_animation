@@ -129,25 +129,25 @@ def rainbow( pos ):
 
 def driver():
     # Controlling the pixels on the board.
-    pixel_pin = board.NEOPIXEL
-    
+    #pixel_pin = board.NEOPIXEL
+
     # Controlling the LED strip attached to A1.
     # DEBUG - one of these is wrong, not sure which...
     # A
     #pixel_pin = digitalio.DigitalInOut( board.A0 )
     #pixel_pin.direction = digitalio.Direction.OUTPUT
     # B
-    #pixel_pin = board.A0
+    pixel_pin = board.A0
     #
     # DEBUG - when I figure out which it is, use the other to control
     # the circular LED lights.
     circle_pin = board.A1
-    
+
     # Code for digital switches
     button_1 = digitalio.DigitalInOut( board.A2 )
     button_1.direction = digitalio.Direction.INPUT
     button_1.pull = digitalio.Pull.UP
-    
+
     button_2 = digitalio.DigitalInOut( board.A3 )
     button_2.direction = digitalio.Direction.INPUT
     button_2.pull = digitalio.Pull.UP
@@ -166,15 +166,23 @@ def driver():
     # rainbow stuff.
     num_circle_pixels = 16
     circle_pixels = neopixel.NeoPixel( circle_pin, num_circle_pixels, brightness=0.5, auto_write=False )
-    # DEBUG - how to set this up...
-    
+    for i in range( len( circle_pixels ) ):
+        circle_pixels[i] = ( 0, 0, 0 )
+
+    circle_path_length = 30
+    circle_speed = 11
+    circle_trail = 30
+    circle_lead = 0
+
+    circle_ps = get_light_ps( circle_path_length, num_circle_pixels )
+
     # Set up our LED strip
     num_pixels = 28
     pixels = neopixel.NeoPixel( pixel_pin, num_pixels, brightness=0.5, auto_write=False )
     for i in range( len( pixels ) ):
         pixels[i] = ( 0, 0, 0 )
     zero_pixels = [ ( 0, 0, 0 ), ( 0, 0, 0 ), ( 0, 0, 0 ), ( 0, 0, 0 ), ( 0, 0, 0 ), ( 0, 0, 0 ), ( 0, 0, 0 ) ]
-   
+
     # Overall model properties for our light.
     path_length = 30
     speed = 24
@@ -204,12 +212,12 @@ def driver():
     # Loop forever.
     while True:
         # Determine what we need to animate, the rules are:
-        # button_1 -> LED segment 1 is 
+        # button_1 -> LED segment 1 is
         # button_1 && button_2 -> Segment 2
         # button_1 && button_2 && button_3 -> Segment 3
         # button_1 && button_2 && button_4 -> Segment 4
         # button_1 && button_2 && button_3 && button_4 -> Circle
-        
+
         # Set up the colors for the light source on each of the four
         # segments.
         peak_a = rainbow( color_a )
@@ -227,41 +235,50 @@ def driver():
         color_d += 1
         color_d = color_d % 256
 
-        #print( "Buttons: ", [ button_1.value, button_2.value, button_3.value, button_4.value ] )
-        
+        print( "Buttons: ", [ button_1.value, button_2.value, button_3.value, button_4.value ] )
+
+        button_override = True
+
         # Light up the appropriate pixels.
         #
         # Switches are active when they read as false.
         tmp = zero_pixels
-        if not button_1.value:
+        if button_override or not button_1.value:
             tmp = animate_path( path_length, speed, trail, lead, light_ps_1, t, peak=peak_a )
         for i in range( len( tmp ) ):
             pixels[i] = tmp[i]
 
         tmp = zero_pixels
-        if not button_1.value and not button_2.value:
+        if button_override or ( not button_1.value and not button_2.value ):
             tmp = animate_path( path_length, speed, trail, lead, light_ps_234, t, peak=peak_b )
         for i in range( len( tmp ) ):
             pixels[7+i] = tmp[i]
 
         tmp = zero_pixels
-        if not button_1.value and not button_2.value and not button_3.value:
+        if button_override or ( not button_1.value and not button_2.value and not button_3.value ):
             tmp = animate_path( path_length, speed, trail, lead, light_ps_234, t, peak=peak_c )
         for i in range( len( tmp ) ):
             pixels[14+i] = tmp[i]
 
         tmp = zero_pixels
-        if not button_1.value and not button_2.value and not button_4.value:
+        if button_override or ( not button_1.value and not button_2.value and not button_4.value ):
             tmp = animate_path( path_length, speed, trail, lead, light_ps_234, t, peak=peak_d )
         for i in range( len( tmp ) ):
             pixels[21+i] = tmp[i]
 
-        if not button_1.value and not button_2.value and not button_3.value and not button_4.value:
-            # DEBUG - animate circle.
-            pass
+        if button_override or ( not button_1.value and not button_2.value and not button_3.value and not button_4.value ):
+            #circle_tmp = animate_path( circle_path_length, circle_speed, circle_trail, circle_lead, circle_ps, t, peak=peak_a )
+            for i in range( len( circle_pixels ) ):
+                circle_pixels[i] = rainbow( 255 & int( ( i*256 / num_circle_pixels ) + color_a*10 ) )
+        else:
+            for i in range( len( circle_pixels ) ):
+                circle_pixels[i] = ( 0, 0, 0 )
+                
+                
 
         #print( pixels )
         pixels.show()
+        circle_pixels.show()
         time.sleep( interval )
         t += interval
         #print( t )
