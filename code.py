@@ -3,6 +3,8 @@ import board
 import analogio
 import digitalio
 import neopixel
+import supervisor
+
 
 # Possible attenuation modes.
 LINEAR = 'linear'
@@ -165,7 +167,7 @@ def driver():
     # DEBUG - for the circle pixels we just want them always on doing
     # rainbow stuff.
     num_circle_pixels = 16
-    circle_pixels = neopixel.NeoPixel( circle_pin, num_circle_pixels, brightness=0.5, auto_write=False )
+    circle_pixels = neopixel.NeoPixel( circle_pin, num_circle_pixels, brightness=1.0, auto_write=False )
     for i in range( len( circle_pixels ) ):
         circle_pixels[i] = ( 0, 0, 0 )
 
@@ -178,7 +180,7 @@ def driver():
 
     # Set up our LED strip
     num_pixels = 28
-    pixels = neopixel.NeoPixel( pixel_pin, num_pixels, brightness=0.5, auto_write=False )
+    pixels = neopixel.NeoPixel( pixel_pin, num_pixels, brightness=1.0, auto_write=False )
     for i in range( len( pixels ) ):
         pixels[i] = ( 0, 0, 0 )
     zero_pixels = [ ( 0, 0, 0 ), ( 0, 0, 0 ), ( 0, 0, 0 ), ( 0, 0, 0 ), ( 0, 0, 0 ), ( 0, 0, 0 ), ( 0, 0, 0 ) ]
@@ -210,7 +212,14 @@ def driver():
     color_d = 3*(256/4)
 
     # Loop forever.
+    reset_count = 0
     while True:
+        # The system locks up after a while - try to hard reboot it around 10 hours in.
+        reset_count += 1
+        if reset_count > 1000000:
+            reset_count = 0
+            supervisor.reload()
+
         # Determine what we need to animate, the rules are:
         # button_1 -> LED segment 1 is
         # button_1 && button_2 -> Segment 2
@@ -235,7 +244,7 @@ def driver():
         color_d += 1
         color_d = color_d % 256
 
-        print( "Buttons: ", [ button_1.value, button_2.value, button_3.value, button_4.value ] )
+        #print( "Buttons: ", [ button_1.value, button_2.value, button_3.value, button_4.value ] )
 
         button_override = True
 
@@ -273,8 +282,8 @@ def driver():
         else:
             for i in range( len( circle_pixels ) ):
                 circle_pixels[i] = ( 0, 0, 0 )
-                
-                
+
+
 
         #print( pixels )
         pixels.show()
@@ -286,4 +295,7 @@ def driver():
             t -= path_length / speed
 
 print( "Starting" )
+# There seems to be intermittent failures which are eased by a delay here.
+time.sleep(2)
 driver()
+
